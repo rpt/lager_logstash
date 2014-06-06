@@ -121,8 +121,14 @@ handle_call(get_loglevel, #state{level = LevelNumber} = State) ->
 handle_call(_Request, State) ->
     {ok, ok, State}.
 
-handle_event({log, _}, #state{handle = undefined} = State) ->
-    {ok, State};
+handle_event({log, Message}, #state{handle = undefined,
+                                    output = Output} = State) ->
+    case connect(Output) of
+        undefined -> {ok, State};
+        Handle ->
+            _ = handle_log(Message, State),
+            {ok, State#state{handle = Handle}}
+    end;
 handle_event({log, Message}, State) ->
     _ = handle_log(Message, State),
     {ok, State};
