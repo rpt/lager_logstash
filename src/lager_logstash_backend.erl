@@ -122,7 +122,6 @@ handle_call(_Request, State) ->
     {ok, ok, State}.
 
 handle_event({log, _}, #state{handle = undefined} = State) ->
-    io:format("LOGSTASH: undefined~n", []),
     {ok, State};
 handle_event({log, Message}, State) ->
     _ = handle_log(Message, State),
@@ -130,38 +129,24 @@ handle_event({log, Message}, State) ->
 handle_event(_Event, State) ->
     {ok, State}.
 
-handle_log({lager_msg, _, Metadata, Severity, DateTime, _, Message},
-           #state{level = Level,
-                  format = Format,
-                  json_encoder = Encoder,
-                  release = Release,
-                  release_vsn = ReleaseVsn} = State) ->
+handle_log(LagerMsg, #state{level = Level,
+                            format = Format,
+                            json_encoder = Encoder,
+                            release = Release,
+                            release_vsn = ReleaseVsn} = State) ->
+    Severity = lager_msg:severity(LagerMsg),
     case lager_util:level_to_num(Severity) =< Level of
         true ->
-            Data = [{type, lager_logstash},
-                    {release, Release},
-                    {release_vsn, ReleaseVsn},
-                    {level, Severity},
-                    {'@timestamp', timestamp(DateTime)},
-                    {message, Message} | Metadata],
-            Payload = encode(Format, Encoder, convert(Data)),
-            send_log([Payload, $\n], State);
+            Config = [{json_encoder, Encoder},
+                      {release, Release},
+                      {release_vsn, ReleaseVsn}],
+            Payload = format(Format, LagerMsg, Config),
+            send_log(Payload, State);
         false -> skip
     end.
 
-timestamp({Date, Time}) -> [Date, $T, Time].
-
-convert(Data) -> lists:foldl(fun convert/2, [], Data).
-
-convert({_, undefined}, Acc) -> Acc;
-convert({pid, Pid}, Acc) when is_pid(Pid) ->
-    [{pid, list_to_binary(pid_to_list(Pid))} | Acc];
-convert({K, List}, Acc) when is_list(List) ->
-    [{K, iolist_to_binary(List)} | Acc];
-convert(Else, Acc) -> [Else | Acc].
-
-encode(json, jsx, Data)   -> jsx:encode(Data);
-encode(json, jiffy, Data) -> jiffy:encode({Data}).
+format(json, Message, Config) ->
+    lager_logstash_json_formatter:format(Message, Config).
 
 send_log(Payload, #state{output = {tcp, _, _}, handle = Socket}) ->
     ok = gen_tcp:send(Socket, Payload);
