@@ -30,15 +30,11 @@ format(LagerMsg, Config) ->
     Encoder = value(json_encoder, Config, ?DEFAULT_JSON_FORMATTER),
     Level = lager_msg:severity(LagerMsg),
     Timestamp = timestamp(lager_msg:datetime(LagerMsg)),
-    Release = value(release, Config, undefined),
-    ReleaseVsn = value(release_vsn, Config, undefined),
     Message = lager_msg:message(LagerMsg),
     Metadata = lager_msg:metadata(LagerMsg),
     Data = [{type, lager_logstash},
             {level, Level},
             {'@timestamp', Timestamp},
-            {release, Release},
-            {release_vsn, ReleaseVsn},
             {message, Message} | Metadata],
     [encode(Encoder, convert(Data)), $\n].
 

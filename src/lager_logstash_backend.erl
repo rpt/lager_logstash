@@ -47,15 +47,12 @@
           level :: lager:log_level_number(),
           output :: output(),
           format :: format(),
-          json_encoder :: json_encoder(),
-          release :: string() | undefined,
-          release_vsn :: string() | undefined
+          json_encoder :: json_encoder()
          }).
 
 init(Args) ->
     Level = arg(level, Args, ?DEFAULT_LEVEL),
     LevelNumber = lager_util:level_to_num(Level),
-    {Release, ReleaseVsn} = release(),
     Output = arg(output, Args, ?DEFAULT_OUTPUT),
     Format = arg(format, Args, ?DEFAULT_FORMAT),
     Encoder = arg(json_encoder, Args, ?DEFAULT_ENCODER),
@@ -66,32 +63,12 @@ init(Args) ->
                 output = Output,
                 format = Format,
                 json_encoder = Encoder,
-                level = LevelNumber,
-                release = Release,
-                release_vsn = ReleaseVsn}}.
+                level = LevelNumber}}.
 
 arg(Name, Args, Default) ->
     case lists:keyfind(Name, 1, Args) of
         {Name, Value} -> Value;
         false         -> Default
-    end.
-
-release() ->
-    try
-        case release(permanent) of
-            {undefined, undefined} -> release(current);
-            {Name, Version}        -> {Name, Version}
-        end
-    catch
-        exit:{noproc,_} -> {undefined, undefined}
-    end.
-
-release(Status) ->
-    case release_handler:which_releases(Status) of
-        [Release] ->
-            {Name, Version, _, Status} = Release,
-            {Name, Version};
-        [] -> {undefined, undefined}
     end.
 
 connect({tcp, Host, Port}) ->
@@ -131,15 +108,11 @@ handle_event(_Event, State) ->
 
 handle_log(LagerMsg, #state{level = Level,
                             format = Format,
-                            json_encoder = Encoder,
-                            release = Release,
-                            release_vsn = ReleaseVsn} = State) ->
+                            json_encoder = Encoder} = State) ->
     Severity = lager_msg:severity(LagerMsg),
     case lager_util:level_to_num(Severity) =< Level of
         true ->
-            Config = [{json_encoder, Encoder},
-                      {release, Release},
-                      {release_vsn, ReleaseVsn}],
+            Config = [{json_encoder, Encoder}],
             Payload = format(Format, LagerMsg, Config),
             send_log(Payload, State);
         false -> skip
@@ -167,5 +140,4 @@ terminate(_Reason, #state{output = {file, _}, handle = Fd}) ->
     ok = file:close(Fd).
 
 code_change(_OldVsn, State, _Extra) ->
-    {Release, ReleaseVsn} = release(),
-    {ok, State#state{release = Release, release_vsn = ReleaseVsn}}.
+    {ok, State}.
