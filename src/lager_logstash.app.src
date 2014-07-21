@@ -1,5 +1,6 @@
 {application, lager_logstash,
  [{description, "Logstash backend for Lager"},
   {vsn, "0.1.2"},
+  {registered,[]},
   {applications, [kernel,
                   stdlib]}]}.
