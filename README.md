@@ -1,4 +1,4 @@
-# lager_logstash 0.1.2 [![Build Status][travis_ci_image]][travis_ci]
+# lager_logstash 0.1.3 [![Build Status][travis_ci_image]][travis_ci]
 
 [Lager][lager] backend for sending logs to [Logstash][logstash].
 
@@ -14,7 +14,7 @@ Add `lager_logstash` to your `rebar.config` deps:
  [
   {lager_logstash, "",
    {git, "https://github.com/rpt/lager_logstash.git",
-    {tag, "0.1.2"}}}
+    {tag, "0.1.3"}}}
  ]}.
 ```
 
@@ -72,6 +72,10 @@ Here's how you would use the included JSON formatter with the
   * other formats
 
 ## Changelog
+
+#### 0.1.3
+
+  * Small fixes
 
 #### 0.1.2
 
